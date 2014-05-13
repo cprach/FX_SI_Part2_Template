@@ -2,7 +2,7 @@
 // Space Invaders Assignment Part 1.
 // Provided implementation.
 
-// Your name and student number here
+// Your name and student number here <-- <-- <--
 
 package application;
 
@@ -12,6 +12,7 @@ import java.util.List;
 
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.event.EventHandler;
@@ -30,7 +31,7 @@ public class Main extends Application {
 
 
 	// Attributes of this class.
-	private String MY_NAME_AND_STUDENT_NUMBER = "Rachael Colley 007"; // <-- change this to you <-- <-- <--
+	private final String MY_NAME_AND_STUDENT_NUMBER = "Rachael Colley 007"; // <-- change this to you <-- <-- <--
 	private FlowPane rootLayout;
 	private Canvas drawingCanvas;
 	private GraphicsContext graphicsObject;
@@ -50,6 +51,15 @@ public class Main extends Application {
 	// used by aliens and spaceship.
 	private double gameAssetWidth;
 	private double gameAssetHeight;
+
+	// new
+	private final int TOTAL_NUM_OF_ALIENS = 15;
+	private final int NUM_OF_ALIENS_ON_ROW = 5;
+	private double assetSpacerWidth;
+	private double assetSpacerHeight;
+	private double fleetTravelRate;
+	private String fleetDirection;
+	private boolean gameOver;
 
 
 
@@ -83,6 +93,11 @@ public class Main extends Application {
 		playerScore = 0;
 		gameAssetWidth = 0;
 		gameAssetHeight = 0;
+		assetSpacerWidth = 0;//
+		assetSpacerHeight = 0;//
+		fleetTravelRate = 0;//
+		fleetDirection = "east"; //
+		gameOver = false; //
 		initialiseGameAssetDimensions();
 		initialiseSpaceShipPosition();
 		initialiseAlienFleetPosition();
@@ -94,7 +109,7 @@ public class Main extends Application {
 
 
 	public void initialiseGameAssetDimensions() {
-		// Required.
+		// Part 1.
 		gameAssetWidth = CANVAS_WIDTH / GAME_ASSET_WIDTH_DIVISOR;
 		gameAssetHeight = GAME_ASSET_HEIGHT_PERCENTAGE * gameAssetWidth;
 	}
@@ -103,7 +118,7 @@ public class Main extends Application {
 
 
 	public void initialiseSpaceShipPosition() {
-		// Required.
+		// Part 1.
 		double middleCoordinate = makeMiddleXCoord();
 		double x = middleCoordinate - (gameAssetWidth / 2);
 		double y = CANVAS_HEIGHT - (gameAssetHeight * 2);
@@ -114,16 +129,47 @@ public class Main extends Application {
 
 
 	public double makeMiddleXCoord() {
-		// Required.
+		// Part 1.
 		return CANVAS_WIDTH / 2;
 	}
 
 
 
 
+
 	public void initialiseAlienFleetPosition() {
-		// Implementation not required for part 1.
-		alienList = new Alien[15];
+		// Required.
+
+		double axisLength = CANVAS_WIDTH;
+		double remainingWidthOnX = axisLength - (gameAssetWidth * NUM_OF_ALIENS_ON_ROW);
+		assetSpacerWidth = remainingWidthOnX / (NUM_OF_ALIENS_ON_ROW + 1);
+		assetSpacerHeight = gameAssetHeight;
+		double fleetStartX = assetSpacerWidth;
+		double fleetStartY = gameAssetHeight;
+		alienList = new Alien[TOTAL_NUM_OF_ALIENS];
+
+		int alienCount = 0;
+		int aliensOnRowCount = 0;
+		double currentX = fleetStartX;
+		double currentY = fleetStartY;
+
+		while (alienCount < TOTAL_NUM_OF_ALIENS) {
+
+			Alien a = new Alien(gameAssetWidth, gameAssetHeight, currentX, currentY);
+			alienList[alienCount] = a;
+			currentX += gameAssetWidth + assetSpacerWidth;
+			aliensOnRowCount ++;
+			alienCount ++;
+
+			if (aliensOnRowCount > NUM_OF_ALIENS_ON_ROW - 1) {
+
+				aliensOnRowCount = 0;
+				currentX = fleetStartX;
+				currentY += assetSpacerHeight * 2;
+
+			}
+
+		}
 
 	}
 
@@ -147,7 +193,8 @@ public class Main extends Application {
 				draw();
 				update();
 				checkForCollision();
-				placeHolderAnimation(); // <-- REMOVE THIS LINE <-- <--
+				isGameOver();
+				//placeHolderAnimation(); // <-- REMOVE THIS LINE <-- <--
 			}
 
 		};
@@ -160,7 +207,7 @@ public class Main extends Application {
 
 	public void draw() {
 		// Implementation provided. No need to alter.
-		graphicsObject.setFill(Color.WHITE);
+		graphicsObject.setFill(Color.BLACK);
 		graphicsObject.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
 		drawSpaceShip();
 		drawAliens();
@@ -182,15 +229,15 @@ public class Main extends Application {
 	public void checkForCollision() {
 		// Implementation provided. No need to alter.
 		detectProjectileCollisionWithAlien();
-		detectProjectileCollisionWithSpaceship();
+		detectAlienCollisionWithSpaceship();
 	}
 
 
 
 
 	public void drawSpaceShip() {
-		// Required.
-		graphicsObject.setFill(Color.BLACK);
+		// Part 1.
+		graphicsObject.setFill(Color.WHITE);
 		graphicsObject.fillRect(spaceShip.getCurrentX(), spaceShip.getCurrentY(), spaceShip.getWidth(), spaceShip.getHeight());
 	}
 
@@ -198,7 +245,19 @@ public class Main extends Application {
 
 
 	public void drawAliens() {
-		// Implementation not required for part 1.
+		// Required.
+
+		graphicsObject.setFill(Color.CHARTREUSE);
+		for (int x = 0; x < alienList.length; x ++ ) {
+			Alien currentAlien = alienList[x];
+			if (currentAlien != null) {
+				graphicsObject.fillRect(currentAlien.getCurrentX(), 
+						currentAlien.getCurrentY(), 
+						currentAlien.getWidth(), 
+						currentAlien.getHeight());
+			}
+		}
+		fleetTravelRate = alienList[0].getTravelRate();
 	}
 
 
@@ -206,7 +265,7 @@ public class Main extends Application {
 
 	public void drawProjectiles() {
 		// Implementation provided. No need to alter.
-		graphicsObject.setFill(Color.BLACK);
+		graphicsObject.setFill(Color.RED);
 		for (int x = 0; x < projectileList.size(); x ++ ) {
 			Projectile currentProjectile = projectileList.get(x);
 			graphicsObject.fillRect(currentProjectile.getCurrentX(), 
@@ -219,8 +278,116 @@ public class Main extends Application {
 
 
 
+
+	public void moveFleetEast(double travelIncrement) {
+		// Required.
+		for (int x = 0; x < alienList.length; x++) {
+			if (alienList[x] != null) {
+				double updatedX = alienList[x].getCurrentX() + travelIncrement;
+				alienList[x].setCurrentX(updatedX);
+			}
+		}
+	}
+
+
+
+
+
+	public void moveFleetWest(double travelIncrement) {
+		// Required.
+		for (int x = 0; x < alienList.length; x++) {
+			if (alienList[x] != null) {
+				double updatedX = alienList[x].getCurrentX() - travelIncrement;
+				alienList[x].setCurrentX(updatedX);
+			}
+		}
+	}
+
+
+
+
+
+	public void moveFleetSouth() {
+		// Required.
+		for (int x = 0; x < alienList.length; x++) {
+			if (alienList[x] != null) {
+				double updatedY = alienList[x].getCurrentY() + (gameAssetHeight / 2);
+				alienList[x].setCurrentY(updatedY);
+			}
+		}
+	}
+
+
+
+
+
 	public void updateAlienFleetPosition() {
-		// Implementation not required for part 1.
+		// Required.
+		double axisLength = CANVAS_WIDTH;
+		double travelIncrement = fleetTravelRate * axisLength;
+
+		//// East
+		if (fleetDirection.equals("east")) {
+			double mostEast = 0;
+
+			for (int x = 0; x < alienList.length; x ++ ) {
+				Alien currentAlien = alienList[x];
+
+				if (currentAlien != null) {
+
+					if (currentAlien.getCurrentX() > mostEast) {
+						mostEast = currentAlien.getCurrentX();
+					}
+
+				}
+
+			}
+
+
+
+			double distanceEast = axisLength - mostEast;
+			if ((mostEast + gameAssetWidth) + travelIncrement > CANVAS_WIDTH) {
+
+				travelIncrement = distanceEast - gameAssetWidth;
+				fleetDirection = "west";
+				moveFleetSouth();
+
+			}
+
+			moveFleetEast(travelIncrement);
+		}
+
+		//// West
+		if (fleetDirection.equals("west")) {
+			double mostWest = CANVAS_WIDTH;
+
+			for (int x = 0; x < alienList.length; x ++ ) {
+				Alien currentAlien = alienList[x];
+
+				if (currentAlien != null) {
+
+					if (currentAlien.getCurrentX() < mostWest) {
+						mostWest = currentAlien.getCurrentX();
+					}
+
+				}
+
+			}
+
+
+			double distanceWest = mostWest;
+			if (mostWest - travelIncrement < 0) {
+
+				travelIncrement = distanceWest;
+				fleetDirection = "east";
+				moveFleetSouth();
+
+			}
+
+			moveFleetWest(travelIncrement);
+
+		}
+
 	}
 
 
@@ -245,7 +412,7 @@ public class Main extends Application {
 
 
 	public void addEventHandlers() {
-		// Required.
+		// Part 1.
 		scene.setOnKeyPressed(new EventHandler<KeyEvent>() {
 
 			@Override
@@ -276,7 +443,7 @@ public class Main extends Application {
 
 
 	public boolean checkForWestEdge(double currentXCoord) {
-		// Required.
+		// Part 1.
 		boolean detected = false;
 		if (currentXCoord <= 0) {
 			detected = true;
@@ -289,7 +456,7 @@ public class Main extends Application {
 
 
 	public boolean checkForEastEdge(double currentXCoord, double widthToCheck) {
-		// Required.
+		// Part 1.
 		boolean detected = false;
 		if (currentXCoord  + widthToCheck >= CANVAS_WIDTH) {
 			detected = true;
@@ -302,7 +469,7 @@ public class Main extends Application {
 
 
 	public void updateSpaceShipPosition(String direction) {
-		// Required.
+		// Part 1.
 
 		double axisLength = CANVAS_WIDTH;
 		double travelIncrement = spaceShip.getTravelRate() * axisLength;
@@ -332,7 +499,7 @@ public class Main extends Application {
 
 
 	public void fireProjectile() {
-		// Required.
+		// Part 1.
 		addNewProjectile(spaceShip.getCurrentX() + (gameAssetWidth / 2), spaceShip.getCurrentY());
 	}
 
@@ -349,28 +516,97 @@ public class Main extends Application {
 
 
 	public void updatePlayerScore() {
-		// Implementation not required for part 1.
+		// Required.
+		playerScore ++;
+
+		System.out.println("Player score: " + playerScore);
+
+		if (playerScore == TOTAL_NUM_OF_ALIENS) {
+			gameOver = true;
+		}
+
 	}
+
 
 
 
 
 	public void detectProjectileCollisionWithAlien() {
-		// Implementation not required for part 1.
+		// Required.
+		for (int x = 0; x < alienList.length; x ++ ) {
+			Alien currentAlien = alienList[x];
+
+			if (currentAlien != null) {
+
+				Iterator<Projectile> itr = projectileList.iterator();
+				while(itr.hasNext()) {
+					Projectile p = itr.next();
+
+					if (p.getCurrentX() + p.getWidth() >= currentAlien.getCurrentX() 
+							&& p.getCurrentX() <= currentAlien.getCurrentX() + currentAlien.getWidth()
+							&&
+							p.getCurrentY() + p.getHeight() >= currentAlien.getCurrentY() 
+							&& p.getCurrentY() <= currentAlien.getCurrentY() + currentAlien.getHeight()) {
+
+						itr.remove();
+						alienList[x] = null;
+						updatePlayerScore();
+						break;
+					}
+
+				}
+
+			}
+
+		}
+
 	}
 
 
 
 
-	public void detectProjectileCollisionWithSpaceship() {
-		// Implementation not required for part 1.
+	public void detectAlienCollisionWithSpaceship() {
+		// Required.
+		for (int x = 0; x < alienList.length; x ++) {
+			Alien currentAlien = alienList[x];
+
+			if (currentAlien != null) {
+
+				if (currentAlien.getCurrentX() + currentAlien.getWidth() >= spaceShip.getCurrentX() 
+						&& currentAlien.getCurrentX() <= spaceShip.getCurrentX() +  spaceShip.getWidth()
+						&& currentAlien.getCurrentY() + currentAlien.getHeight() >= spaceShip.getCurrentY()
+						&& currentAlien.getCurrentY() <= spaceShip.getCurrentY() + spaceShip.getHeight()) {
+
+					gameOver = true;
+				}
+
+			}
+
+		}
+
 	}
+
+
+
+
+
+
+	public boolean isGameOver() {
+		// Required.
+
+		if(gameOver == true){
+			gameOver();
+		}
+		return false;
+	}
+
 
 
 
 
 	public void gameOver() {
-		// Implementation not required for part 1.
+		// Required.
+		Platform.exit();
 	}
 
 
@@ -382,8 +618,8 @@ public class Main extends Application {
 	}
 
 
-	
-	
+
+	// Placeholder animation. Locate the statement in gameloop() to remove it.
 	private List<Projectile> northAnimList = new ArrayList<Projectile>();
 	private List<Projectile> southAnimList = new ArrayList<Projectile>();
 	public void placeHolderAnimation() {
