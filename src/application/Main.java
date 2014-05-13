@@ -55,9 +55,9 @@ public class Main extends Application {
 	// new
 	private final int TOTAL_NUM_OF_ALIENS = 15;
 	private final int NUM_OF_ALIENS_ON_ROW = 5;
-	private double assetSpacerWidth;
-	private double assetSpacerHeight;
-	private double fleetTravelRate;
+	private double assetSpacerWidth; // The space between each alien.
+	private double assetSpacerHeight; // The space between each row of aliens.
+	private double fleetTravelRate; 
 	private String fleetDirection;
 	private boolean gameOver;
 
