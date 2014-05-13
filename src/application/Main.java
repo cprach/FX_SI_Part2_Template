@@ -8,6 +8,7 @@ package application;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
@@ -146,7 +147,7 @@ public class Main extends Application {
 				draw();
 				update();
 				checkForCollision();
-
+				placeHolderAnimation(); // <-- REMOVE THIS LINE <-- <--
 			}
 
 		};
@@ -381,6 +382,59 @@ public class Main extends Application {
 	}
 
 
+	
+	
+	private List<Projectile> northAnimList = new ArrayList<Projectile>();
+	private List<Projectile> southAnimList = new ArrayList<Projectile>();
+	public void placeHolderAnimation() {
+		graphicsObject.setFill(Color.BLACK);
+		graphicsObject.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+		int offset = (int) (CANVAS_WIDTH / 20);
+		if (northAnimList.size() == 0) {
+			double xCoord = offset;
+			double yCoord = CANVAS_HEIGHT;
+			for (int x = 0; x < 10; x ++ ) {
+				Projectile p = new Projectile(xCoord,yCoord);
+				northAnimList.add(p);
+				xCoord += (CANVAS_WIDTH / 10);
+			}
+		}
+		if (southAnimList.size() == 0) {
+			double xCoord = offset;
+			double yCoord = 0;
+			for (int x = 0; x < 10; x ++ ) {
+				Projectile p = new Projectile(xCoord,yCoord);
+				southAnimList.add(p);
+				xCoord += (CANVAS_WIDTH / 10);
+			}
+		}
+		for (int x = 0; x < northAnimList.size(); x ++ ) {
+			Projectile p = northAnimList.get(x);
+			graphicsObject.setFill(Color.CHARTREUSE);
+			graphicsObject.fillOval(p.getCurrentX(), p.getCurrentY(), p.getWidth(), p.getHeight());
+		}
+		for (int x = 0; x < southAnimList.size(); x ++ ) {
+			Projectile p = southAnimList.get(x);
+			graphicsObject.setFill(Color.CHARTREUSE);
+			graphicsObject.fillOval(p.getCurrentX(), p.getCurrentY(), p.getWidth(), p.getHeight());
+		}
+		Iterator<Projectile> northIterator = northAnimList.iterator();
+		while (northIterator.hasNext()) {
+			Projectile p = northIterator.next();
+			p.setCurrentY(p.getCurrentY() - ((p.getTravelRate() * CANVAS_HEIGHT)/2));
+			if (p.getCurrentY() <= 0) {
+				northIterator.remove();
+			} 
+		}
+		Iterator<Projectile> southIterator = southAnimList.iterator();
+		while (southIterator.hasNext()) {
+			Projectile p = southIterator.next();
+			p.setCurrentY(p.getCurrentY() + ((p.getTravelRate() * CANVAS_HEIGHT)/2));
+			if (p.getCurrentY() >= CANVAS_HEIGHT) {
+				southIterator.remove();
+			} 
+		}
+	}
 
 
 } // End class.
