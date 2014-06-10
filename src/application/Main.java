@@ -93,11 +93,11 @@ public class Main extends Application {
 		playerScore = 0;
 		gameAssetWidth = 0;
 		gameAssetHeight = 0;
-		assetSpacerWidth = 0;//
-		assetSpacerHeight = 0;//
-		fleetTravelRate = 0;//
-		fleetDirection = "east"; //
-		gameOver = false; //
+		assetSpacerWidth = 0;
+		assetSpacerHeight = 0;
+		fleetTravelRate = 0;
+		fleetDirection = "east"; 
+		gameOver = false; 
 		initialiseGameAssetDimensions();
 		initialiseSpaceShipPosition();
 		initialiseAlienFleetPosition();
