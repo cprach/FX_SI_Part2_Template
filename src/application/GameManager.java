@@ -148,7 +148,7 @@ public class GameManager {
         }
     }
     public void updateAlienFleetPosition() {
-        double axisLength = canvasWidth;
+        double axisLength = makeAxisLength(canvasStartX, canvasEndX);
         double travelIncrement = fleetTravelRate * axisLength;
         //// East
         if (fleetDirection.equals("east")) {
@@ -241,6 +241,20 @@ public class GameManager {
         projectileList.add(new Projectile(spaceShip.getCurrentX() + (gameAssetWidth / 2), spaceShip.getCurrentY()));
         System.out.println("projectileList size: " + projectileList.size());
     }
+//    public void dropProjectile() {
+//		int numOfCols = NUM_OF_ALIENS_ON_ROW - 1;
+//		Alien ra = null;
+//		int index = 0;
+//		int randomCol = (int) (Math.random() * (numOfCols + 1));
+//		index = (10 + randomCol);
+//		while (ra == null && index >= 0) {
+//			ra = alienFleet[index];
+//			index -= 5;
+//		}
+//		if (ra != null) {
+//			fleetProjectiles.add(new Projectile(ra.getX() + (gameAssetWidth / 2), ra.getY() + (gameAssetHeight + 1),3,3));
+//		}
+//	}
     public void detectProjectileCollisionWithAlien() {
         for (int x = 0; x < alienList.length; x ++ ) {
             Alien currentAlien = alienList[x];
