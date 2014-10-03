@@ -17,7 +17,7 @@ public class Alien extends GameAsset {
 	
 	
 	// Constant attribute.
-	private final double TRAVEL_RATE = 0.05;
+	private final double TRAVEL_RATE = 0.001;
 
 	
 	

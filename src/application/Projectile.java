@@ -15,7 +15,7 @@ package application;
 public class Projectile extends GameAsset {
 	
 	// Constant attributes.
-	private final double TRAVEL_RATE = 0.02;
+	private final double TRAVEL_RATE = 0.03;
 	private final static int PROJECTILE_WIDTH = 3;
 	private final static int PROJECTILE_HEIGHT = 3;
 
