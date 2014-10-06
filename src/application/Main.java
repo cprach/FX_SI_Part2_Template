@@ -35,6 +35,7 @@ public class Main extends Application {
     private final double CANVAS_HEIGHT = 500;
     private final double CANVAS_BUFFER = 100;
     private GameManager gm;
+    int countdown = 50;
     
     @Override
     public void start(Stage primaryStage) {
@@ -68,6 +69,12 @@ public class Main extends Application {
                 draw();
                 update();
                 checkForCollision();
+                if (countdown == 0){
+                    countdown = (int) (100 + (Math.random() * 50));
+                    gm.dropProjectile();
+                    //alienProjectileSoundClip.play();
+                }
+                countdown --;
                 isGameOver();
                 //placeHolderAnimation(); // <-- REMOVE THIS LINE <-- <--
             }
@@ -80,10 +87,12 @@ public class Main extends Application {
         drawSpaceShip();
         drawAliens();
         drawProjectiles();
+        drawAlienProjectiles();
     }
     public void update() {
         gm.updateAlienFleetPosition();
         gm.updateProjectiles();
+        gm.updateAlienProjectilePostion();
     }
     public void checkForCollision() {
         gm.detectProjectileCollisionWithAlien();
@@ -119,6 +128,13 @@ public class Main extends Application {
                     currentProjectile.getHeight());
         }
     }
+    public void drawAlienProjectiles() {
+		graphicsObject.setFill(Color.CHARTREUSE);
+		List<Projectile> projectiles = gm.getAlienProjectiles();
+		for (Projectile p : projectiles) {
+			graphicsObject.fillRect(p.getCurrentX(), p.getCurrentY(), p.getWidth(), p.getHeight());
+		}
+	}
     public void addEventHandlers() {
         scene.setOnKeyPressed(new EventHandler<KeyEvent>() {
             @Override

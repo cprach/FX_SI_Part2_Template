@@ -8,6 +8,8 @@ package application;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 
 /**
  *
@@ -23,7 +25,8 @@ public class GameManager {
     
     private SpaceShip spaceShip;
     private Alien[] alienList;
-    private ArrayList<Projectile> projectileList;
+    private ArrayList<Projectile> spaceShipProjectiles;
+    private ArrayList<Projectile> alienProjectiles;
     private int playerScore;
     
     private double gameAssetWidth;
@@ -35,6 +38,7 @@ public class GameManager {
     private double assetSpacerHeight; // The space between each row of aliens.
     private double fleetTravelRate;
     private String fleetDirection;
+    private double fleetProjectileTravelRate;
     private boolean gameOver;
     
     // Calculated
@@ -42,6 +46,8 @@ public class GameManager {
     private double canvasStartY;
     private double canvasEndX;
     private double canvasEndY;
+    
+    BooleanProperty oGameOver = new SimpleBooleanProperty();
     
     public GameManager(double canvasWidth, double canvasHeight, double canvasBuffer) {
         this.canvasWidth = canvasWidth;
@@ -62,7 +68,7 @@ public class GameManager {
         initialiseGameAssetDimensions();
         initialiseSpaceShipPosition();
         initialiseAlienFleetPosition();
-        initialiseProjectileList();
+        initialiseProjectileLists();
     }
     public void makeCanvasDimensions() {
         canvasStartX = canvasBuffer;
@@ -120,8 +126,9 @@ public class GameManager {
         double fleetStartY = canvasStartX + gameAssetHeight;
         return fleetStartY;
     }
-    public void initialiseProjectileList() {
-        projectileList = new ArrayList<Projectile>();
+    public void initialiseProjectileLists() {
+        spaceShipProjectiles = new ArrayList<Projectile>();
+        alienProjectiles = new ArrayList<Projectile>();
     }
     public void moveFleetEast(double travelIncrement) {
         for (int x = 0; x < alienList.length; x++) {
@@ -190,7 +197,7 @@ public class GameManager {
         }
     }
     public void updateProjectiles() {
-        Iterator<Projectile> i = projectileList.iterator();
+        Iterator<Projectile> i = spaceShipProjectiles.iterator();
         while (i.hasNext()) {
             Projectile currentProjectile = i.next();
             double axisLength = canvasHeight;
@@ -198,7 +205,7 @@ public class GameManager {
             currentProjectile.setCurrentY(currentProjectile.getCurrentY() - travelIncrement);
             if (currentProjectile.getCurrentY() <= 0) {
                 i.remove();
-                System.out.println("projectileList size: " + projectileList.size());
+                System.out.println("projectileList size: " + spaceShipProjectiles.size());
             }
         }
     }
@@ -238,28 +245,58 @@ public class GameManager {
         }
     }
     public void addNewProjectile() {
-        projectileList.add(new Projectile(spaceShip.getCurrentX() + (gameAssetWidth / 2), spaceShip.getCurrentY()));
-        System.out.println("projectileList size: " + projectileList.size());
+        spaceShipProjectiles.add(new Projectile(spaceShip.getCurrentX() + (gameAssetWidth / 2), spaceShip.getCurrentY()));
+        System.out.println("projectileList size: " + spaceShipProjectiles.size());
     }
-//    public void dropProjectile() {
-//		int numOfCols = NUM_OF_ALIENS_ON_ROW - 1;
-//		Alien ra = null;
-//		int index = 0;
-//		int randomCol = (int) (Math.random() * (numOfCols + 1));
-//		index = (10 + randomCol);
-//		while (ra == null && index >= 0) {
-//			ra = alienFleet[index];
-//			index -= 5;
-//		}
-//		if (ra != null) {
-//			fleetProjectiles.add(new Projectile(ra.getX() + (gameAssetWidth / 2), ra.getY() + (gameAssetHeight + 1),3,3));
-//		}
-//	}
+    public void dropProjectile() {
+        int numOfCols = NUM_OF_ALIENS_ON_ROW - 1;
+        Alien ra = null;
+        int index = 0;
+        int randomCol = (int) (Math.random() * (numOfCols + 1));
+        index = (10 + randomCol);
+        while (ra == null && index >= 0) {
+            ra = alienList[index];
+            index -= 5;
+        }
+        if (ra != null) {
+            alienProjectiles.add(new Projectile(ra.getCurrentX() + (gameAssetWidth / 2), ra.getCurrentY() + (gameAssetHeight + 1)));
+            fleetProjectileTravelRate = ra.getTravelRate();
+        }
+    }
+    public boolean detectProjectileCollisionWithSpaceship() {
+        Iterator<Projectile> itr = alienProjectiles.iterator();
+        while(itr.hasNext()) {
+            Projectile p = itr.next();
+            if (p.getCurrentX() + p.getWidth() >= spaceShip.getCurrentX()
+                    && p.getCurrentX() <= spaceShip.getCurrentX() + spaceShip.getWidth()
+                    &&
+                    p.getCurrentY() + p.getHeight() >= spaceShip.getCurrentY() && p.getCurrentY() <= spaceShip.getCurrentX() + spaceShip.getHeight()) {
+                itr.remove();
+                oGameOver.set(true);
+                return true;
+            }
+        }
+        return false;
+    }
+    public void updateAlienProjectilePostion() {
+		double axisLength = makeAxisLength(canvasStartY, canvasEndY);
+		double travelIncrement = fleetProjectileTravelRate * axisLength;
+		Iterator<Projectile> itr = alienProjectiles.iterator();
+		while(itr.hasNext()) {
+			Projectile p = itr.next();
+			double projectileY = p.getCurrentY();
+			if (projectileY + travelIncrement > canvasEndY) {
+				itr.remove();
+			} else {
+				p.setCurrentY(projectileY + travelIncrement);
+			}
+		}
+	}
     public void detectProjectileCollisionWithAlien() {
         for (int x = 0; x < alienList.length; x ++ ) {
             Alien currentAlien = alienList[x];
             if (currentAlien != null) {
-                Iterator<Projectile> itr = projectileList.iterator();
+                Iterator<Projectile> itr = spaceShipProjectiles.iterator();
                 while(itr.hasNext()) {
                     Projectile p = itr.next();
                     if (p.getCurrentX() + p.getWidth() >= currentAlien.getCurrentX()
@@ -305,11 +342,16 @@ public class GameManager {
         return alienList;
     }
     public ArrayList<Projectile> getProjectileList() {
-        return projectileList;
+        return spaceShipProjectiles;
     }
     public boolean isGameOver() {
         return gameOver;
     }
+
+    public ArrayList<Projectile> getAlienProjectiles() {
+        return alienProjectiles;
+    }
+    
     
     
     
