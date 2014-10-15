@@ -9,13 +9,22 @@ package application;
 import java.util.ArrayList;
 import java.util.Iterator;
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 
 /**
  *
  * @author rcolley
  */
 public class GameManager {
+    
+    private int score;
+    IntegerProperty oScore = new SimpleIntegerProperty();
+    BooleanProperty oGameOver = new SimpleBooleanProperty();
+    BooleanProperty oShot = new SimpleBooleanProperty();
+    private int finishScore;
+    private long lastShot;
     
     private final int GAME_ASSET_WIDTH_DIVISOR = 20;
     private final double GAME_ASSET_HEIGHT_PERCENTAGE = 0.75;
@@ -47,15 +56,18 @@ public class GameManager {
     private double canvasEndX;
     private double canvasEndY;
     
-    BooleanProperty oGameOver = new SimpleBooleanProperty();
     
     public GameManager(double canvasWidth, double canvasHeight, double canvasBuffer) {
         this.canvasWidth = canvasWidth;
         this.canvasHeight = canvasHeight;
         this.canvasBuffer = canvasBuffer;
-        initialise();
+        initialiseGameManager();
     }
-    public void initialise() {
+    // For use by UI
+    public void moveSpaceShip(String direction) {
+        updateSpaceShipPosition(direction);
+    }
+    public void initialiseGameManager() {
         playerScore = 0;
         gameAssetWidth = 0;
         gameAssetHeight = 0;
@@ -64,11 +76,26 @@ public class GameManager {
         fleetTravelRate = 0;
         fleetDirection = "east";
         gameOver = false;
+        finishScore = TOTAL_NUM_OF_ALIENS;
         makeCanvasDimensions();
         initialiseGameAssetDimensions();
         initialiseSpaceShipPosition();
         initialiseAlienFleetPosition();
         initialiseProjectileLists();
+    }
+    public void doGameLoop() {
+        updateAlienFleetPosition();
+        updateProjectiles();
+        updateAlienProjectilePostion();
+        detectAlienCollisionWithSpaceship();
+        detectProjectileCollisionWithSpaceship();
+    }
+    public void updateScore() {
+        score ++;
+        oScore.setValue(score);
+        if(score == finishScore) {
+            oGameOver.set(true);
+        }
     }
     public void makeCanvasDimensions() {
         canvasStartX = canvasBuffer;
@@ -135,6 +162,10 @@ public class GameManager {
             if (alienList[x] != null) {
                 double updatedX = alienList[x].getCurrentX() + travelIncrement;
                 alienList[x].setCurrentX(updatedX);
+                if (detectProjectileCollisionWithAlien(alienList[x])) {
+                    alienList[x] = null;
+                    updateScore();
+                }
             }
         }
     }
@@ -143,6 +174,10 @@ public class GameManager {
             if (alienList[x] != null) {
                 double updatedX = alienList[x].getCurrentX() - travelIncrement;
                 alienList[x].setCurrentX(updatedX);
+                if (detectProjectileCollisionWithAlien(alienList[x])) {
+                    alienList[x] = null;
+                    updateScore();
+                }
             }
         }
     }
@@ -151,6 +186,10 @@ public class GameManager {
             if (alienList[x] != null) {
                 double updatedY = alienList[x].getCurrentY() + (gameAssetHeight / 2);
                 alienList[x].setCurrentY(updatedY);
+                if (detectProjectileCollisionWithAlien(alienList[x])) {
+                    alienList[x] = null;
+                    updateScore();
+                }
             }
         }
     }
@@ -223,7 +262,17 @@ public class GameManager {
         }
         return detected;
     }
-    public void updateSpaceShipPosition(String direction) {
+    public void Shoot(Long now) {
+        if(now > lastShot + 300) {
+            oShot.setValue(true);
+//			addNewProjectile(spaceShip.getCurrentX() + (gameAssetWidth / 2),spaceShip.getCurrentY());
+            addNewProjectile();
+            
+            lastShot = now;
+        }
+        oShot.setValue(false);
+    }
+    private void updateSpaceShipPosition(String direction) {
         double axisLength = canvasWidth;
         double travelIncrement = spaceShip.getTravelRate() * axisLength;
         double updatedX = 0;
@@ -279,40 +328,66 @@ public class GameManager {
         return false;
     }
     public void updateAlienProjectilePostion() {
-		double axisLength = makeAxisLength(canvasStartY, canvasEndY);
-		double travelIncrement = fleetProjectileTravelRate * axisLength;
-		Iterator<Projectile> itr = alienProjectiles.iterator();
-		while(itr.hasNext()) {
-			Projectile p = itr.next();
-			double projectileY = p.getCurrentY();
-			if (projectileY + travelIncrement > canvasEndY) {
-				itr.remove();
-			} else {
-				p.setCurrentY(projectileY + travelIncrement);
-			}
-		}
-	}
-    public void detectProjectileCollisionWithAlien() {
-        for (int x = 0; x < alienList.length; x ++ ) {
-            Alien currentAlien = alienList[x];
-            if (currentAlien != null) {
-                Iterator<Projectile> itr = spaceShipProjectiles.iterator();
-                while(itr.hasNext()) {
-                    Projectile p = itr.next();
-                    if (p.getCurrentX() + p.getWidth() >= currentAlien.getCurrentX()
-                            && p.getCurrentX() <= currentAlien.getCurrentX() + currentAlien.getWidth()
-                            &&
-                            p.getCurrentY() + p.getHeight() >= currentAlien.getCurrentY()
-                            && p.getCurrentY() <= currentAlien.getCurrentY() + currentAlien.getHeight()) {
-                        
-                        itr.remove();
-                        alienList[x] = null;
-                        updatePlayerScore();
-                        break;
-                    }
-                }
+        double axisLength = makeAxisLength(canvasStartY, canvasEndY);
+        double travelIncrement = fleetProjectileTravelRate * axisLength;
+        Iterator<Projectile> itr = alienProjectiles.iterator();
+        while(itr.hasNext()) {
+            Projectile p = itr.next();
+            double projectileY = p.getCurrentY();
+            if (projectileY + travelIncrement > canvasEndY) {
+                itr.remove();
+            } else {
+                p.setCurrentY(projectileY + travelIncrement);
             }
         }
+    }
+//    public void updateProjectilePostion() {
+////        double axisLength = makeAxisLength(canvasStartY, canvasEndY);
+////        double travelIncrement = projectileTravelRate * axisLength;
+////        Iterator<Projectile> itr = spaceShipProjectiles.iterator();
+////        while(itr.hasNext()) {
+////            Projectile p = itr.next();
+////            double projectileY = p.getY();
+////            if (projectileY - travelIncrement < canvasStartY) {
+////                itr.remove();
+////            } else {
+////                p.setY(projectileY - travelIncrement);
+////            }
+////        }
+//    }
+    public boolean detectProjectileCollisionWithAlien(Alien a) {
+        Iterator<Projectile> itr = spaceShipProjectiles.iterator();
+        while(itr.hasNext()) {
+            Projectile p = itr.next();
+            if (p.getCurrentX() + p.getWidth() >= a.getCurrentX()
+                    && p.getCurrentX() <= a.getCurrentX() + a.getWidth()
+                    &&
+                    p.getCurrentY() + p.getHeight() >= a.getCurrentY() && p.getCurrentY() <= a.getCurrentY() + a.getHeight()) {
+                itr.remove();
+                return true;
+            }
+        }
+        return false;
+//        for (int x = 0; x < alienList.length; x ++ ) {
+//            Alien currentAlien = alienList[x];
+//            if (currentAlien != null) {
+//                Iterator<Projectile> itr = spaceShipProjectiles.iterator();
+//                while(itr.hasNext()) {
+//                    Projectile p = itr.next();
+//                    if (p.getCurrentX() + p.getWidth() >= currentAlien.getCurrentX()
+//                            && p.getCurrentX() <= currentAlien.getCurrentX() + currentAlien.getWidth()
+//                            &&
+//                            p.getCurrentY() + p.getHeight() >= currentAlien.getCurrentY()
+//                            && p.getCurrentY() <= currentAlien.getCurrentY() + currentAlien.getHeight()) {
+//
+//                        itr.remove();
+//                        alienList[x] = null;
+//                        updatePlayerScore();
+//                        break;
+//                    }
+//                }
+//            }
+//        }
     }
     public void updatePlayerScore() {
         playerScore ++;
@@ -321,19 +396,32 @@ public class GameManager {
             gameOver = true;
         }
     }
-    public void detectAlienCollisionWithSpaceship() {
-        for (int x = 0; x < alienList.length; x ++) {
-            Alien currentAlien = alienList[x];
-            if (currentAlien != null) {
-                if (currentAlien.getCurrentX() + currentAlien.getWidth() >= spaceShip.getCurrentX()
-                        && currentAlien.getCurrentX() <= spaceShip.getCurrentX() +  spaceShip.getWidth()
-                        && currentAlien.getCurrentY() + currentAlien.getHeight() >= spaceShip.getCurrentY()
-                        && currentAlien.getCurrentY() <= spaceShip.getCurrentY() + spaceShip.getHeight()) {
-                    
-                    gameOver = true;
-                }
+    public boolean detectAlienCollisionWithSpaceship() {
+        Iterator<Projectile> itr = alienProjectiles.iterator();
+        while(itr.hasNext()) {
+            Projectile p = itr.next();
+            if (p.getCurrentX() + p.getWidth() >= spaceShip.getCurrentX()
+                    && p.getCurrentX() <= spaceShip.getCurrentX() + spaceShip.getWidth()
+                    &&
+                    p.getCurrentY() + p.getHeight() >= spaceShip.getCurrentY() && p.getCurrentY() <= spaceShip.getCurrentY() + spaceShip.getHeight()) {
+                itr.remove();
+                oGameOver.set(true);
+                return true;
             }
         }
+        return false;
+//        for (int x = 0; x < alienList.length; x ++) {
+//            Alien currentAlien = alienList[x];
+//            if (currentAlien != null) {
+//                if (currentAlien.getCurrentX() + currentAlien.getWidth() >= spaceShip.getCurrentX()
+//                        && currentAlien.getCurrentX() <= spaceShip.getCurrentX() +  spaceShip.getWidth()
+//                        && currentAlien.getCurrentY() + currentAlien.getHeight() >= spaceShip.getCurrentY()
+//                        && currentAlien.getCurrentY() <= spaceShip.getCurrentY() + spaceShip.getHeight()) {
+//
+//                    gameOver = true;
+//                }
+//            }
+//        }
     }
     public SpaceShip getSpaceShip() {
         return spaceShip;
@@ -347,11 +435,65 @@ public class GameManager {
     public boolean isGameOver() {
         return gameOver;
     }
-
+    
     public ArrayList<Projectile> getAlienProjectiles() {
         return alienProjectiles;
     }
+    public int getScore() {
+        return score;
+    }
     
+    public void setScore(int score) {
+        this.score = score;
+    }
+    
+    public IntegerProperty getoScore() {
+        return oScore;
+    }
+    
+    public void setoScore(IntegerProperty oScore) {
+        this.oScore = oScore;
+    }
+    
+    public BooleanProperty getoGameOver() {
+        return oGameOver;
+    }
+    
+    public void setoGameOver(BooleanProperty oGameOver) {
+        this.oGameOver = oGameOver;
+    }
+    
+    public int getFinishScore() {
+        return finishScore;
+    }
+    
+    public void setFinishScore(int finishScore) {
+        this.finishScore = finishScore;
+    }
+
+    public double getCanvasWidth() {
+        return canvasWidth;
+    }
+
+    public double getCanvasHeight() {
+        return canvasHeight;
+    }
+
+    public double getCanvasStartX() {
+        return canvasStartX;
+    }
+
+    public double getCanvasStartY() {
+        return canvasStartY;
+    }
+
+    public double getCanvasEndX() {
+        return canvasEndX;
+    }
+
+    public double getCanvasEndY() {
+        return canvasEndY;
+    }
     
     
     
